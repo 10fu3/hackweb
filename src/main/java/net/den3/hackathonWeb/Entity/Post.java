@@ -9,20 +9,25 @@ import java.util.UUID;
 
 public class Post {
 
-    private final static SimpleDateFormat sdf = new SimpleDateFormat("d日 hh時 mm分");
+    private final static SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/HH:mm");
 
     Long date;
-    Facility facility;
+    String facility;
     String time;
     String userid;
+    String floor;
     String uuid = UUID.randomUUID().toString();
 
-    public Facility getFacility() {
+    public String getFloor(){
+        return this.floor;
+    }
+
+    public String getFacility() {
         return facility;
     }
 
     public String getTime() {
-        return sdf.format(time);
+        return sdf.format(new Date(date));
     }
 
     public Long getDate(){
@@ -41,18 +46,20 @@ public class Post {
         return this.uuid;
     }
 
-    public Post(String userUUID, Facility facility){
+    public Post(String userUUID,String facility,String floor){
         this.userid = userUUID;
         this.facility = facility;
         Date d = new Date();
         this.time = sdf.format(d);
         this.date = d.getTime();
+        this.floor = floor;
 
     }
 
-    public Post(String userUUID, Facility facility,String time,Long date){
+    public Post(String userUUID, String facility,String floor,String time,Long date){
         this.userid = userUUID;
         this.facility = facility;
+        this.floor = floor;
         this.time = time;
         this.date = date;
     }

@@ -5,7 +5,7 @@ import redis.clients.jedis.Jedis;
 
 
 public class LoginStore implements ILoginStore{
-    final Jedis jedis = Main.jedis;
+    final Jedis jedis = Main.getJedis();
 
 
     /**
@@ -15,7 +15,11 @@ public class LoginStore implements ILoginStore{
      */
     @Override
     public boolean isLoggedIn(String key) {
-        return jedis.exists(key);
+        try {
+            return jedis.exists(key);
+        }catch (ClassCastException e){
+            return jedis.exists(key);
+        }
     }
 
     /**

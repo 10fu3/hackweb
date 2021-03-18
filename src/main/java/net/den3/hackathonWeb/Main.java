@@ -2,24 +2,23 @@ package net.den3.hackathonWeb;
 
 import io.javalin.Javalin;
 import net.den3.hackathonWeb.Store.*;
-import net.den3.hackathonWeb.View.LoginPage;
-import net.den3.hackathonWeb.View.RegisterPage;
-import net.den3.hackathonWeb.View.TopPage;
+import net.den3.hackathonWeb.View.*;
 import redis.clients.jedis.Jedis;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import java.net.URI;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.X509Certificate;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
 public class Main {
+
+    public static Jedis getJedis(){
+        try{
+            jedis.ping("Hello!");
+        }catch (Exception e){
+            jedis = new Jedis(System.getenv("REDIS_URL"));
+        }
+        return jedis;
+    }
+
     private static int getHerokuAssignedPort() {
         String herokuPort = System.getenv("PORT");
         if (herokuPort != null) {
@@ -28,40 +27,12 @@ public class Main {
         return 7000;
     }
 
-    private static Jedis getConnection() {
-        try {
-            TrustManager bogusTrustManager = new X509TrustManager() {
-                public X509Certificate[] getAcceptedIssuers() {
-                    return null;
-                }
-
-                public void checkClientTrusted(X509Certificate[] certs, String authType) {
-                }
-
-                public void checkServerTrusted(X509Certificate[] certs, String authType) {
-                }
-            };
-
-            SSLContext sslContext = SSLContext.getInstance("SSL");
-            sslContext.init(null, new TrustManager[]{bogusTrustManager}, new java.security.SecureRandom());
-
-            HostnameVerifier bogusHostnameVerifier = (hostname, session) -> true;
-
-            return new Jedis(URI.create(System.getenv("REDIS_URL")),
-                    sslContext.getSocketFactory(),
-                    sslContext.getDefaultSSLParameters(),
-                    bogusHostnameVerifier);
-
-        } catch (NoSuchAlgorithmException | KeyManagementException e) {
-            throw new RuntimeException("Cannot obtain Redis connection!", e);
-        }
-    }
-
+    private static Jedis jedis = new Jedis(System.getenv("REDIS_URL"));
 
     public final static ILoginStore loginStore = new LoginStore();
     public final static IUserStore userStore = new UserStore();
     public final static IPostStore logStore = new PostStore();
-    public final static Jedis jedis = getConnection();
+    public final static IUserStatusStore statusStore = new UserStatusStore();
 
     public static void main(String[] args) {
         Javalin app = Javalin.create().start(getHerokuAssignedPort());
@@ -69,12 +40,19 @@ public class Main {
         new LoginPage(app);
         new TopPage(app);
         new RegisterPage(app);
+        new SelfProfile(app);
+        new PlaceUser(app);
+        new RegistryPlace(app);
+        new UserStatus(app);
+        new RegistryPlace(app);
 
-        app.get("/", ctx -> {
-            Map<String, Object> model = new HashMap<>();
-            model.put("message", "Hello World");
-            model.put("now", LocalDateTime.now());
-            ctx.render("/WEB-INF/templates/test.html", model);
+        app.get("/debug",ctx->{
+            Map<String, Object> json = new HashMap<>();
+            json.put("users",userStore.getUsers());
+            json.put("posts",logStore.getPosts());
+            ctx.json(json);
         });
+
+        app.after(ctx->{ctx.res.setCharacterEncoding("UTF-8");});
     }
 }

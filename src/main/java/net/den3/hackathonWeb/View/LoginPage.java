@@ -21,8 +21,8 @@ public class LoginPage {
         });
 
         javalin.post("/login",ctx->{
-            String mail = ctx.formParam("email");
-            String pass = ctx.formParam("password");
+            String mail = ctx.formParam("mail");
+            String pass = ctx.formParam("pass");
 
             if(mail == null || pass == null){
                 ctx.redirect("/login");
@@ -38,7 +38,7 @@ public class LoginPage {
 
             String hash = HashGenerator.getSafetyPassword(pass,user.get().getUUID());
 
-            if(!hash.equalsIgnoreCase(pass)){
+            if(!hash.equalsIgnoreCase(user.get().getPass())){
                 ctx.redirect("/login");
                 return;
             }
@@ -48,6 +48,8 @@ public class LoginPage {
             Main.loginStore.loginUser(session,user.get().getUUID());
 
             ctx.cookie("session",session);
+
+            ctx.redirect("/");
         });
     }
 }

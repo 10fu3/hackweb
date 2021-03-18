@@ -17,14 +17,16 @@ public class UserStore implements IUserStore{
     final Queue<IUser> addQueue = new LinkedList<>();
 
     private final String GET_ALL_SQL = "SELECT * FROM users";
-    private final String GET_ID_SQL = "SELECT * FROM users WHERE uuid = ?";
-    private final String GET_MAIL_SQL = "SELECT * FROM users WHERE mail = ?";
     private final String DELETE_SQL = "DELETE FROM users WHERE uuid = ?;";
     private final String INSERT_SQL = "INSERT INTO users (uuid,mail,password,nick,icon) VALUES (?,?,?,?,?);";
     private final String UPDATE_SQL = "UPDATE users SET mail = ?,password = ?,nick = ?,icon = ? WHERE uuid = ?";
 
 
     private HikariDataSource hikari;
+
+    public UserStore(){
+        setupDB();
+    }
 
     private void setupDB(){
         try{
@@ -50,14 +52,16 @@ public class UserStore implements IUserStore{
             new Thread(()->{
                 TimerTask task = new TimerTask() {
                     public void run() {
+                        System.out.println("User add task...");
                         Optional.ofNullable(addQueue.poll()).ifPresent(u->{
+                            System.out.println("User added!");
                             _addUser(u);
                         });
                     }
                 };
 
                 Timer timer = new Timer();
-                timer.schedule(task, 1000*30);
+                timer.schedule(task, 0,1000*10);
             }).start();
 
         }catch (URISyntaxException e){
@@ -70,16 +74,18 @@ public class UserStore implements IUserStore{
 
             final String createTable = "create table users (" +
                     " uuid varchar(30) unique," +
-                    " mail varchar(255)" +
-                    " password varchar(255)" +
-                    " nick varchar(255)" +
+                    " mail varchar(255)," +
+                    " password varchar(255)," +
+                    " nick varchar(255)," +
                     " icon varchar(255)" +
                     ");";
 
             PreparedStatement ps = hikari.getConnection().prepareStatement(createTable);
             ps.executeQuery();
 
-        }catch (SQLException ignore){}
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
     }
 
     public void closeDB(){

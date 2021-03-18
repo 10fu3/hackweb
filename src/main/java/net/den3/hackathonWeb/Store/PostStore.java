@@ -1,6 +1,5 @@
 package net.den3.hackathonWeb.Store;
 
-import net.den3.hackathonWeb.Entity.Facility;
 import net.den3.hackathonWeb.Entity.Post;
 import net.den3.hackathonWeb.Main;
 import redis.clients.jedis.Jedis;
@@ -9,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PostStore implements IPostStore{
-    final Jedis jedis = Main.jedis;
+    final Jedis jedis = Main.getJedis();
 
     List<Post> posts;
 
@@ -23,7 +22,7 @@ public class PostStore implements IPostStore{
         String key = "facility."+post.getUUID();
         jedis.expire(key,60*60);
 
-        jedis.rpush(key,post.getFacility().name());
+        jedis.rpush(key,post.getFacility());
         jedis.expire(key,60*60);
 
         key = "time."+post.getUUID();
@@ -34,8 +33,16 @@ public class PostStore implements IPostStore{
         jedis.rpush(key,post.getUserID());
         jedis.expire(key,60*60);
 
-        key = "date."+ post.getDate();
+        key = "date."+ post.getUUID();
         jedis.rpush(key,String.valueOf(post.getDate()));
+        jedis.expire(key,60*60);
+
+        key = "facility."+post.getUUID();
+        jedis.rpush(key,String.valueOf(post.getFacility()));
+        jedis.expire(key,60*60);
+
+        key = "floor."+post.getUUID();
+        jedis.rpush(key,String.valueOf(post.getFloor()));
         jedis.expire(key,60*60);
 
         this.posts.add(post);
@@ -43,18 +50,25 @@ public class PostStore implements IPostStore{
 
     private List<Post> _getPosts(){
         List<Post> posts = new ArrayList<>();
-        long size = jedis.llen("posts");
+        Long size = jedis.llen("posts");
+
+        if(size == null || size == 0){
+            return posts;
+        }
 
         for (long i = 0; i < size; i++) {
-            String key = jedis.lindex("posts",i);
-            String user = jedis.get("user."+key);
-            String time = jedis.get("time."+key);
-            String facility = jedis.get("facility."+key);
-            Long date = Long.parseLong(jedis.get("date."+key));
-            if(user == null || time == null || facility == null){
-                continue;
-            }
-            posts.add(new Post(user, Facility.valueOf(facility),time,date));
+            try{
+                String key = jedis.lindex("posts",i);
+                String user = jedis.get("user."+key);
+                String time = jedis.get("time."+key);
+                String facility = jedis.get("facility."+key);
+                String floor = jedis.get("floor."+key);
+                Long date = Long.parseLong(jedis.get("date."+key));
+                if(user == null || time == null || facility == null || floor == null){
+                    continue;
+                }
+                posts.add(new Post(user,facility,floor,time,date));
+            }catch (Exception ignore){}
         }
         return posts;
     }
